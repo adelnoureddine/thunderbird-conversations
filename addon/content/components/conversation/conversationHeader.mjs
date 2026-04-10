@@ -400,6 +400,9 @@ export class ConversationHeader extends HTMLElement {
   }
 
   setData(summary, msgData) {
+    if (!this.#linkifiedSubject || !this.#convActionButtons) {
+      return;
+    }
     if (
       this.#linkifiedSubject.getAttribute("loading") !=
       summary.loading.toString()

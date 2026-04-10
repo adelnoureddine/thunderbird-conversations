@@ -264,7 +264,9 @@ export const messageActions = {
           windowType: null,
           url: null,
         });
-        await browser.tabs.remove(currentTab[0].id);
+        if (currentTab.length) {
+          await browser.tabs.remove(currentTab[0].id);
+        }
       }
     };
   },
