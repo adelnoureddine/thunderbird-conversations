@@ -106,12 +106,16 @@ export const controllerActions = {
         !(await browser.conversations.getCorePref(
           "mailnews.mark_message_read.delay"
         ));
+      const darkReaderEnabled = await browser.conversations.getCorePref(
+        "mail.dark-reader.enabled"
+      );
 
       await dispatch(
         summaryActions.setSystemOptions({
           autoMarkAsRead,
           browserForegroundColor,
           browserBackgroundColor,
+          darkReaderEnabled,
           defaultDetailsShowing,
           defaultFontSize,
           OS: platformInfo.os,
@@ -120,7 +124,10 @@ export const controllerActions = {
 
       if (getState().summary.prefs.loggingEnabled) {
         loggingEnabled = true;
-        console.debug(`Initializing ${isInTab ? "tab" : "message pane"} view.`);
+        console.debug(
+          "Conversations:",
+          `Initializing ${isInTab ? "tab" : "message pane"} view.`
+        );
       }
 
       await dispatch(controllerActions.initializeMessageThread({ params }));
@@ -344,6 +351,16 @@ function setupListeners(dispatch, getState) {
    * @param {browser.messages.MessageHeader[]} msgs
    */
   async function msgSelectionChanged(msgs) {
+    if (getState().summary.prefs.loggingEnabled) {
+      console.debug(
+        "Conversations:",
+        "onSelectedMessagesChanged called with",
+        msgs.map((m) => ({
+          id: m.id,
+        }))
+      );
+    }
+
     dispatch(
       conversationActions.showConversation({ msgIds: msgs.map((m) => m.id) })
     );

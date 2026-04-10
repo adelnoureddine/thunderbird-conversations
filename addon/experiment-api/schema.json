@@ -140,29 +140,6 @@
         ]
       },
       {
-        "name": "makePlural",
-        "type": "function",
-        "description": "Extracts a plural from a l10n message string.",
-        "async": true,
-        "parameters": [
-          {
-            "name": "pluralForm",
-            "type": "string",
-            "description": "The plural form to use."
-          },
-          {
-            "name": "message",
-            "type": "string",
-            "description": "The l10n message string."
-          },
-          {
-            "name": "value",
-            "type": "integer",
-            "description": "The value to insert into the string."
-          }
-        ]
-      },
-      {
         "name": "markSelectedAsJunk",
         "type": "function",
         "description": "Marks the selected messages as junk. May be replaced once bug 1642225 is fixed.",
@@ -197,19 +174,6 @@
             "name": "id",
             "type": "integer",
             "description": "The message id to view source for."
-          }
-        ]
-      },
-      {
-        "name": "openInClassic",
-        "type": "function",
-        "description": "Opens a message in the classic view.",
-        "async": true,
-        "parameters": [
-          {
-            "name": "id",
-            "type": "integer",
-            "description": "The message id to view in classic mode. Bug 1696764."
           }
         ]
       },
@@ -293,6 +257,13 @@
               "msgId": {
                 "type": "integer",
                 "description": "The message id to detach the attachment for."
+              },
+              "partNames": {
+                "type": "array",
+                "description": "The message parts to download",
+                "items": {
+                  "type": "string"
+                }
               }
             }
           }
@@ -325,38 +296,6 @@
               "partName": {
                 "type": "string",
                 "description": "The attachment Url to download the attachment for."
-              }
-            }
-          }
-        ]
-      },
-      {
-        "name": "openAttachment",
-        "type": "function",
-        "description": "Temporary. Triggers opening a single attachment for a message. Bug 1696777",
-        "async": true,
-        "parameters": [
-          {
-            "name": "openAttachmentProperties",
-            "type": "object",
-            "properties": {
-              "winId": {
-                "type": "integer",
-                "optional": true,
-                "description": "The window from which the attachment is being opened."
-              },
-              "tabId": {
-                "type": "integer",
-                "optional": true,
-                "description": "The tab from which the attachment is being opened."
-              },
-              "msgId": {
-                "type": "integer",
-                "description": "The message id to open the attachment for."
-              },
-              "partName": {
-                "type": "string",
-                "description": "The attachment Url to open the attachment for."
               }
             }
           }

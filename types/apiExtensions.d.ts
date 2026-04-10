@@ -160,27 +160,22 @@ declare namespace browser {
       id: number,
       extraAttachments: boolean
     ): Promise<any>;
-    export function makePlural(
-      pluralForm: string,
-      message: string,
-      value: number
-    ): Promise<string>;
     export function markSelectedAsJunk(
       tabId: number,
       isJunk: boolean
     ): Promise<void>;
     export function sendUnsent(): Promise<void>;
     export function openInSourceView(id: number): Promise<void>;
-    export function openInClassic(id: number): Promise<void>;
     export function showRemoteContent(id: number): Promise<void>;
     export function alwaysShowRemoteContent(email: string): Promise<void>;
-    export function beginEdit(id: number, type: string): Promise<void>;
+    export function beginEdit(id: number): Promise<void>;
     export function ignorePhishing(id: number): Promise<void>;
 
     interface downloadAllAttachmentsProperties {
       winId?: number;
       tabId?: number;
       msgId: number;
+      partNames: string[];
     }
     export function downloadAllAttachments(
       downloadAllAttachmentsProperties
@@ -196,7 +191,6 @@ declare namespace browser {
     export function downloadAttachment(
       downloadAttachmentProperties
     ): Promise<void>;
-    export function openAttachment(genericAttachmentProperties): Promise<void>;
     export function detachAttachment(
       genericAttachmentProperties
     ): Promise<void>;

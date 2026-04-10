@@ -1,5 +1,6 @@
 import globals from "globals";
-import json from "eslint-plugin-json";
+import json from "@eslint/json";
+import jsdoc from "eslint-plugin-jsdoc";
 import react from "eslint-plugin-react";
 import importPlugin from "eslint-plugin-import";
 import mozilla from "eslint-plugin-mozilla";
@@ -7,7 +8,7 @@ import eslintConfigPrettier from "eslint-config-prettier";
 
 export default [
   {
-    ignores: ["dist**", "package-lock.json"],
+    ignores: ["dist**", "package-lock.json", "**/*.html", "**/*.xhtml"],
   },
   ...mozilla.configs["flat/recommended"],
   {
@@ -30,6 +31,7 @@ export default [
     ...importPlugin.flatConfigs.recommended,
     languageOptions: {
       parserOptions: {
+        // @ts-ignore
         ...importPlugin.flatConfigs.recommended.languageOptions.parserOptions,
         sourceType: "module",
       },
@@ -90,9 +92,8 @@ export default [
   },
   {
     files: ["**/*.json"],
-    plugins: { json },
-    processor: json.processors[".json"],
-    rules: json.configs.recommended.rules,
+    language: "json/json",
+    ...json.configs.recommended,
   },
   {
     ignores: [
@@ -131,6 +132,7 @@ export default [
   },
   {
     files: ["**/*.{js,mjs}"],
+    plugins: { jsdoc },
     rules: {
       "jsdoc/check-tag-names": "error",
       "jsdoc/check-types": "error",

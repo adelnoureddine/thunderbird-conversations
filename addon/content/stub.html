@@ -10,7 +10,7 @@
       href="chrome://messenger/skin/tagColors.css"
     />
     <!-- Keep the order! -->
-    <link rel="stylesheet" type="text/css" href="conversation.css" />
+    <link rel="stylesheet" type="text/css" href="conversation.css?v=1" />
     <link
       rel="stylesheet"
       type="text/css"
@@ -25,6 +25,12 @@
   </head>
 
   <body>
-    <div id="conversationWrapper"></div>
+    <div id="messageNotFound" class="hidden"></div>
+    <div id="conversationWrapper">
+      <div id="popup-container"></div>
+      <conversation-header></conversation-header>
+      <div id="messageList"></div>
+      <conversation-footer></conversation-footer>
+    </div>
   </body>
 </html>

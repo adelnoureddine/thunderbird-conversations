@@ -12,16 +12,12 @@ let index = 0;
 
 const domParser = new DOMParser();
 const TOGGLE_TEMPLATE = `<button
-    class="link icon-link"
-    style="cursor: pointer; user-select: none; background-color: transparent; display: inline-flex; align-items: center; gap: 2px; padding: 4px 6px; margin: 6px 0; transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1); color: var(--layout-color-2); font-size: 0.85rem; min-height: 24px; border: 1px solid transparent;"
+    class="link"
+    style="cursor: pointer; user-select: none; background-color: inherit; border: inherit;"
     show-text=""
     hide-text=""
-    title=""
   >
-    <span class="toggle-text" style="font-size: 0.85rem; line-height: 1.2; text-transform: capitalize;"></span>
-    <svg class="icon" style="width: 14px; height: 14px; fill: currentColor; flex-shrink: 0;" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-      <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
-    </svg>
+    SHOW/HIDE
   </button>`;
 
 /**
@@ -55,17 +51,12 @@ function createToggleForNode(
     .childNodes[0];
   toggle.setAttribute("show-text", showText);
   toggle.setAttribute("hide-text", hideText);
-  // Remove the old color and size styling - now handled by CSS
+  toggle.style.color = linkColor;
+  toggle.style.fontSize = smallSize;
   toggle.classList.add(...linkClass.split(/\s/));
 
   function show() {
-    const iconPath = toggle.querySelector("path");
-    const toggleText = toggle.querySelector(".toggle-text");
-    // expand_more icon path (down arrow when expanded)
-    iconPath.setAttribute("d", "M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z");
-    // Show hide text (e.g., "hide quoted text")
-    toggleText.textContent = toggle.getAttribute("hide-text").replace(/^- /, "").replace(/ -$/, "");
-    toggle.setAttribute("title", toggle.getAttribute("hide-text"));
+    toggle.textContent = `- ${toggle.getAttribute("hide-text")} -`;
     toggle.setAttribute("state", "visible");
     node.style.display = "";
     // The callback may want to do something with the size of the revealed node, so call the callback after it's visible
@@ -73,13 +64,7 @@ function createToggleForNode(
   }
 
   function hide() {
-    const iconPath = toggle.querySelector("path");
-    const toggleText = toggle.querySelector(".toggle-text");
-    // chevron_right icon path (right arrow when collapsed)
-    iconPath.setAttribute("d", "M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z");
-    // Show show text (e.g., "show quoted text")
-    toggleText.textContent = toggle.getAttribute("show-text").replace(/^- /, "").replace(/ -$/, "");
-    toggle.setAttribute("title", toggle.getAttribute("show-text"));
+    toggle.textContent = `- ${toggle.getAttribute("show-text")} -`;
     toggle.setAttribute("state", "hidden");
     // The callback may want to do something with the size of the revealed node, so call the callback before it's hidden
     onToggle(false, node);
@@ -460,6 +445,52 @@ export class MessageIFrame extends React.Component {
     );
   }
 
+  tweakFonts(iframeDoc) {
+    if (!this.props.prefs.tweakBodies) {
+      return [];
+    }
+
+    let textSize = Math.round(
+      this.props.defaultFontSize * this.props.tenPxFactor * 1.2
+    );
+
+    // Assuming 16px is the default (like on, say, Linux), this gives
+    //  18px and 12px, which is what Andy had in mind.
+    // We're applying the style at the beginning of the <head> tag and
+    //  on the body element so that it can be easily overridden by the
+    //  html.
+    // This is for HTML messages only.
+    let styleRules = [];
+    if (
+      iframeDoc.querySelectorAll(":not(.mimemail-body) > .moz-text-html").length
+    ) {
+      styleRules = [
+        "body, table {",
+        // "  line-height: 112.5%;",
+        "  font-size: " + textSize + "px;",
+        "}",
+      ];
+    }
+
+    // Do some reformatting + deal with people who have bad taste. All these
+    // rules are important: some people just send messages with horrible colors,
+    // which ruins the conversation view. Gecko tends to automatically add
+    // padding/margin to html mails. We still want to honor these prefs but
+    // usually they just black/white so this is pretty much what we want.
+    let fg = this.props.browserForegroundColor;
+    let bg = this.props.browserBackgroundColor;
+    styleRules = styleRules.concat([
+      "body {",
+      "  margin: 0; padding: 0;",
+      "}",
+      "body:has(> .moz-text-html) {",
+      "  color: " + fg + "; background-color: " + bg + ";",
+      "}",
+    ]);
+
+    return styleRules;
+  }
+
   async detectQuotes(iframe) {
     // Launch various crappy pieces of code heuristics to
     // convert most common quoting styles to real blockquotes. Spoiler:
@@ -505,6 +536,10 @@ export class MessageIFrame extends React.Component {
             hideText: browser.i18n.getMessage("messageBody.hideQuotedText"),
             showText: browser.i18n.getMessage("messageBody.showQuotedText"),
             linkClass: "showhidequote",
+            smallSize: this.props.prefs.tweakChrome
+              ? this.props.defaultFontSize * this.props.tenPxFactor * 1.1
+              : Math.round((100 * this.props.defaultFontSize * 11) / 12) / 100,
+            linkColor: "orange",
             onToggle: toggleCallbackFactory(iframe),
           });
           // We only put a show/hide button on the first suitable quote,
@@ -528,6 +563,10 @@ export class MessageIFrame extends React.Component {
         hideText: browser.i18n.getMessage("messageBody.hideSigText"),
         showText: browser.i18n.getMessage("messageBody.showSigText"),
         linkClass: "showhidesig",
+        smallSize: this.props.prefs.tweakChrome
+          ? this.props.defaultFontSize * this.props.tenPxFactor * 1.1
+          : Math.round((100 * this.props.defaultFontSize * 11) / 12) / 100,
+        linkColor: "rgb(56, 117, 215)",
         onToggle: toggleCallbackFactory(iframe),
       });
     }
@@ -549,16 +588,16 @@ export class MessageIFrame extends React.Component {
     // Additional CSS for dark mode
     cssRules.push(
       `@media screen and (prefers-color-scheme: dark) {
-          html:not(.overrideDarkMode) {
+          html.darkReaderEnabled { 
           /* Override Thunderbird's styles in 138+ */
             background-color: inherit;
             color: inherit;
           }
-          html:not(.overrideDarkMode) > body {
+          html.darkReaderEnabled > body {
             filter: invert(100%) hue-rotate(180deg) !important;
             background: rgb(28, 27, 34) !important;
           }
-          html:not(.overrideDarkMode) > body :is(img, [style*="background-image:"]:not([style*="background-image: none"]), [background*="."], g-emoji) {
+          html.darkReaderEnabled > body :is(img, [style*="background-image:"]:not([style*="background-image: none"]), [background*="."], g-emoji) {
             filter: invert(100%) hue-rotate(180deg) !important;
           }
       }`
@@ -571,9 +610,15 @@ export class MessageIFrame extends React.Component {
     if (event.target != this.iframe.contentDocument) {
       return;
     }
+
     const iframeDoc = this.iframe.contentDocument;
-    // Use native Thunderbird styling - no font tweaking
-    let styleRules = [];
+    if (this.props.darkReaderEnabled) {
+      iframeDoc.documentElement?.classList.add("darkReaderEnabled");
+    } else {
+      iframeDoc.documentElement?.classList.remove("darkReaderEnabled");
+    }
+
+    let styleRules = this.tweakFonts(iframeDoc);
     if (
       !(this.props.realFrom && this.props.realFrom.includes("bugzilla-daemon"))
     ) {
@@ -590,7 +635,9 @@ export class MessageIFrame extends React.Component {
     let head = iframeDoc.body.previousElementSibling;
     head.appendChild(style);
 
-    this.adjustHeight();
+    // Probably can remove this - commented out to avoid forcing flush during restyle.
+    // Gets called from onLoad.
+    // this.adjustHeight();
   }
 
   _onMsgHasRemoteContent() {
@@ -619,17 +666,6 @@ export class MessageIFrame extends React.Component {
   }
 
   render() {
-    if (this.iframe?.contentDocument) {
-      if (this.props.overrideDarkMode) {
-        this.iframe.contentDocument.documentElement.classList.add(
-          "overrideDarkMode"
-        );
-      } else {
-        this.iframe.contentDocument.documentElement?.classList.remove(
-          "overrideDarkMode"
-        );
-      }
-    }
     // TODO: See comment in componentDidMount
     // <iframe className={`iframe${this.index}`} type="content" ref={f => this.iframe = f}/>
     return React.createElement("div", {
@@ -642,6 +678,7 @@ export class MessageIFrame extends React.Component {
 MessageIFrame.propTypes = {
   browserBackgroundColor: PropTypes.string.isRequired,
   browserForegroundColor: PropTypes.string.isRequired,
+  darkReaderEnabled: PropTypes.bool.isRequired,
   defaultFontSize: PropTypes.number.isRequired,
   dispatch: PropTypes.func.isRequired,
   expanded: PropTypes.bool.isRequired,
@@ -650,7 +687,6 @@ MessageIFrame.propTypes = {
   isInTab: PropTypes.bool.isRequired,
   isStandalone: PropTypes.bool.isRequired,
   initialPosition: PropTypes.number.isRequired,
-  overrideDarkMode: PropTypes.bool.isRequired,
   smimeReload: PropTypes.bool.isRequired,
   tenPxFactor: PropTypes.number.isRequired,
   prefs: PropTypes.object.isRequired,

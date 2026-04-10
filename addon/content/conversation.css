@@ -175,7 +175,7 @@ p {
 }
 
 button {
-  -moz-appearance: button;
+  appearance: button;
 }
 
 .hidden {
@@ -183,7 +183,7 @@ button {
 }
 
 .button-flat {
-  -moz-appearance: none;
+  appearance: none;
   background: none;
   border: 1px solid transparent;
   cursor: pointer;
@@ -200,7 +200,7 @@ a img {
 
 .link {
   text-decoration: none;
-  color: -moz-nativehyperlinktext;
+  color: LinkText;
   cursor: pointer;
 }
 
@@ -414,7 +414,7 @@ a img {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  
+
   @media (prefers-reduced-motion: no-preference) {
     transition: background-color .15s, border-color .15s;
   }
@@ -481,11 +481,32 @@ a img {
   border: none;
 }
 
+/* Upstream custom element button styles */
+linkified-subject {
+  flex: 1;
+  overflow: hidden;
+}
+
+.actions-button {
+  min-width: 30px;
+  text-align: center;
+  height: 20px;
+  margin: 0 0 0 2px;
+  color: var(--layout-color-2);
+  background: transparent;
+  border: none;
+}
+
 .actions .unread {
   color: var(--selected-item-color);
 }
 
-.actions .expand {
+.actions-button.unread {
+  color: #3079e0;
+}
+
+.expand-less,
+.expand-more {
   /* relatively scale arrow to match with other icons */
   transform: scale(1.6, 1.6);
   transition: transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
@@ -505,8 +526,9 @@ a img {
   display: none;
 }
 
+.expand .expand-more,
 .expand.collapse .expand-less {
-  display: initial;
+  display: inline-block;
 }
 
 /* Smooth rotation animation for expand/collapse icons */
@@ -1338,11 +1360,11 @@ html[dir="rtl"] .attachmentsDropDown .arrow {
   cursor: pointer;
 }
 
-.notificationBar > .icon {
+.notificationBar > svg-icon::part(svg) {
   font-size: 1.8em;
 }
 
-.openpgpBar > .icon {
+.openpgpBar > svg-icon::part(svg) {
   font-size: 1em;
 }
 
@@ -1354,6 +1376,14 @@ html[dir="rtl"] .attachmentsDropDown .arrow {
   font-size: 0.9rem;
   padding: 0 var(--message-padding);
   color: var(--layout-color-2);
+}
+
+.attachmentIcon {
+  color: var(--dull-foreground-color);
+}
+
+.attachmentIcon svg-icon::part(svg) {
+  transform: rotate(-50deg);
 }
 
 .attachments {
@@ -1536,6 +1566,75 @@ html[dir="rtl"] .attachmentsDropDown .arrow {
 
 .filename {
   font-weight: bold;
+}
+
+.filesize .messageFooter {
+  padding: 2px 10px;
+}
+
+.footerActions {
+  float: inline-end;
+}
+
+.footerActions button {
+  font-size: 120%;
+  background: none;
+  border: 0;
+  color: var(--dull-foreground-color);
+  width: 2em;
+  height: 2em;
+  border-radius: 1em;
+  cursor: pointer;
+}
+
+.footerActions button:hover,
+.footerActions button:focus {
+  color: -moz-CellHighlight;
+}
+
+.messageFooter.hide .footerActions {
+  display: none;
+}
+
+.messageFooter.hide {
+  padding: 0;
+}
+
+.messageFooter:after {
+  content: " ";
+  display: block;
+  height: 0;
+  clear: both;
+  visibility: hidden;
+}
+
+.star {
+  display: inline;
+  margin-inline-end: 3px;
+  color: var(--email-address-dull-color);
+  font-size: 80%;
+  border: none !important;
+  background: transparent;
+}
+
+.star svg-icon::part(svg) {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.star.starred {
+  color: #fcb040;
+}
+.star.starred svg-icon::part(svg) {
+  fill: currentColor;
+  stroke: currentColor;
+}
+
+/* bottom links: forward this conversation, print this conversation */
+.bottom-links {
+  text-align: end;
+  padding: 5px 10px 10px 10px;
 }
 
 /* for printing */

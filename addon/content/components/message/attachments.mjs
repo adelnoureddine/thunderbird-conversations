@@ -4,7 +4,75 @@
 
 import React from "react";
 import { attachmentActions } from "../../reducer/reducerAttachments.mjs";
-import { SvgIcon } from "../svgIcon.mjs";
+import { ActionButton } from "./messageActionButton.mjs";
+
+const ICON_MAPPING = new Map([
+  ["application/msword", "x-office-document"],
+  ["application/vnd.ms-excel", "x-office-spreadsheet"],
+  ["application/vnd.ms-powerpoint", "x-office-presentation"],
+  ["application/rtf", "x-office-document"],
+  ["application/zip", "package-x-generic"],
+  ["application/bzip2", "package-x-generic"],
+  ["application/x-gzip", "package-x-generic"],
+  ["application/x-tar", "package-x-generic"],
+  ["application/x-compressed", "package-x-generic"],
+  // "message/": "email",
+  ["text/x-vcalendar", "x-office-calendar"],
+  ["text/x-vcard", "x-office-address-book"],
+  ["text/html", "text-html"],
+  ["application/pdf", "application-pdf"],
+  ["application/x-pdf", "application-pdf"],
+  ["application/x-bzpdf", "application-pdf"],
+  ["application/x-gzpdf", "application-pdf"],
+]);
+
+const FALLBACK_ICON_MAPPING = new Map([
+  // Fallbacks, at the end.
+  ["video/", "video-x-generic"],
+  ["audio/", "audio-x-generic"],
+  ["image/", "image-x-generic"],
+  ["text/", "text-x-generic"],
+]);
+
+/**
+ * The more menu for attachments
+ *
+ * @param {object} options
+ * @param {() => void} options.detachCallback
+ * @param {() => void} options.deleteCallback
+ */
+function AttachmentMoreMenu({ detachCallback, deleteCallback }) {
+  return React.createElement(
+    "div",
+    { className: "tooltip tooltip-menu menu" },
+    React.createElement("div", { className: "arrow" }),
+    React.createElement("div", { className: "arrow inside" }),
+    React.createElement(
+      "ul",
+      null,
+      React.createElement(
+        "li",
+        { className: "action-detach" },
+        React.createElement(ActionButton, {
+          callback: detachCallback,
+          className: "optionsButton",
+          showString: true,
+          type: "detachAttachment",
+        })
+      ),
+      React.createElement(
+        "li",
+        { className: "action-delete" },
+        React.createElement(ActionButton, {
+          callback: deleteCallback,
+          className: "optionsButton",
+          showString: true,
+          type: "deleteAttachment",
+        })
+      )
+    )
+  );
+}
 
 /**
  * Handles display of an individual attachment.
@@ -29,27 +97,12 @@ function Attachment({
   partName,
   id,
 }) {
+  let [displayMenu, setDisplayMenu] = React.useState(false);
 
-  // Clean attachment name by removing any "< >" characters that might be added by various sources
-  const cleanName = name ? name.replace(/<\s*>/g, '').trim() : '';
-
-  function preview(event) {
-    event.preventDefault();
-    event.stopPropagation();
+  function preview() {
     dispatch(
       attachmentActions.previewAttachment({
         name,
-        id,
-        partName,
-      })
-    );
-  }
-
-  function openAttachment(event) {
-    event.preventDefault();
-    event.stopPropagation();
-    dispatch(
-      attachmentActions.openAttachment({
         id,
         partName,
       })
@@ -83,9 +136,7 @@ function Attachment({
   //   event.stopPropagation();
   // }
 
-  function downloadAttachment(event) {
-    event.preventDefault();
-    event.stopPropagation();
+  function downloadAttachment() {
     dispatch(
       attachmentActions.downloadAttachment({
         id,
@@ -94,83 +145,186 @@ function Attachment({
     );
   }
 
+  function openAttachment() {
+    dispatch(
+      attachmentActions.openAttachment({
+        id,
+        partName,
+      })
+    );
+  }
 
+  function detachAttachment() {
+    dispatch(
+      attachmentActions.detachAttachment({
+        id,
+        partName,
+        shouldSave: true,
+      })
+    );
+  }
+
+  function deleteAttachment() {
+    dispatch(
+      attachmentActions.detachAttachment({
+        id,
+        partName,
+        fileName: name,
+        shouldSave: false,
+      })
+    );
+  }
+
+  React.useEffect(() => {
+    function clickOrBlurListener(event) {
+      clearMenu();
+    }
+    function keyListener(event) {
+      if (event.key == "Escape") {
+        clearMenu();
+      }
+    }
+    if (displayMenu) {
+      document.addEventListener("click", clickOrBlurListener);
+      document.addEventListener("keypress", keyListener);
+      document.addEventListener("blur", clickOrBlurListener);
+    }
+    return () => {
+      document.removeEventListener("click", clickOrBlurListener);
+      document.removeEventListener("keypress", keyListener);
+      document.removeEventListener("blur", clickOrBlurListener);
+    };
+  }, [displayMenu]);
+
+  function handleDisplayMenu(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    setDisplayMenu(!displayMenu);
+  }
+
+  function clearMenu() {
+    setDisplayMenu(false);
+  }
+
+  function iconForMimeType(mimeType) {
+    if (ICON_MAPPING.has(mimeType)) {
+      return ICON_MAPPING.get(mimeType) + ".svg";
+    }
+    let split = mimeType.split("/");
+    if (split.length && FALLBACK_ICON_MAPPING.has(split[0] + "/")) {
+      return FALLBACK_ICON_MAPPING.get(split[0] + "/") + ".svg";
+    }
+    return "gtk-file.png";
+  }
 
   let isDeleted = contentType == "text/x-moz-deleted";
 
   let isImage = contentType.startsWith("image/");
-  let attachmentTitle = isImage
+  let imgTitle = isImage
     ? browser.i18n.getMessage("attachments.viewAttachment.tooltip")
     : browser.i18n.getMessage("attachments.open.tooltip");
 
-  let handleAttachmentClick = null;
-  if (!isDeleted) {
-    handleAttachmentClick = isImage ? preview : openAttachment;
-  }
-
-  // Helper function to determine file type icon based on content type
-  // Only uses icons that exist in material-icons.svg
-  function getFileTypeIcon(contentType) {
-    if (contentType.startsWith("image/")) {
-      return "photo_library";
-    } else if (contentType.startsWith("audio/")) {
-      return "whatshot"; // Using available icon as fallback
-    } else if (contentType.startsWith("video/")) {
-      return "visibility"; // Using available icon as fallback
-    } else if (contentType.includes("pdf")) {
-      return "print"; // Using print icon for PDFs
-    } else if (contentType.includes("html") || contentType.includes("xml")) {
-      return "code";
-    } else if (contentType.includes("text/")) {
-      return "list"; // Using list icon for text files
-    } else if (contentType.includes("zip") || contentType.includes("compressed") || contentType.includes("archive")) {
-      return "archive";
-    } else if (contentType.includes("word") || contentType.includes("document") || contentType.includes("officedocument")) {
-      return "save"; // Using save icon for office documents
+  let [thumb, setThumb] = React.useState(null);
+  let [imgClass, setImgClass] = React.useState(null);
+  React.useEffect(() => {
+    if (isImage) {
+      // TODO: Can we load images separately and make them available later,
+      // so that we're not relying on having the url here. This would
+      // mean we can use browser.messages.listAttachments.
+      (async () => {
+        let file = await browser.messages.getAttachmentFile(id, partName);
+        setThumb(URL.createObjectURL(file));
+        setImgClass("resize-me");
+      })();
     } else {
-      return "attachment"; // Default fallback to attachment icon
+      setThumb("icons/" + iconForMimeType(contentType));
+      setImgClass("mime-icon");
     }
-  }
+  }, [id, contentType, partName]);
 
   // TODO: Drag n drop
   // onDragStart={this.onDragStart}
   return React.createElement(
     "li",
-    {
-      className: `attachment ${isDeleted ? 'deleted' : 'clickable'}`,
-      onClick: handleAttachmentClick,
-      title: !isDeleted ? attachmentTitle : undefined
-    },
-    React.createElement(
-      "div",
-      { className: "attachment-type-icon" },
+    { className: "attachment" },
+    isDeleted &&
       React.createElement(
-        SvgIcon,
-        { hash: getFileTypeIcon(contentType) }
-      )
-    ),
+        "div",
+        { className: "attachmentThumb deleted", draggable: "false" },
+        React.createElement("img", {
+          className: imgClass,
+          src: thumb,
+          title: name,
+        })
+      ),
+    !isDeleted &&
+      React.createElement(
+        "div",
+        {
+          className: "attachmentThumb",
+          draggable: "false",
+          onClick: isImage ? preview : openAttachment,
+        },
+        React.createElement("img", {
+          className: imgClass,
+          src: thumb,
+          title: imgTitle,
+        })
+      ),
     React.createElement(
       "div",
-      { className: "attachmentInfo" },
-      React.createElement("span", { className: "filename" }, cleanName),
-      React.createElement("span", { className: "filesize" }, formattedSize)
-    ),
-    React.createElement(
-      "div",
-      { className: "attachment-actions-row" },
+      { className: "attachmentInfo align" },
+      React.createElement("span", { className: "filename" }, name),
+      React.createElement("span", { className: "filesize" }, formattedSize),
       !isDeleted &&
         React.createElement(
           "div",
           { className: "attachActions" },
+          isImage &&
+            React.createElement(
+              "a",
+              {
+                className: "icon-link preview-attachment",
+                title: browser.i18n.getMessage("attachments.preview.tooltip"),
+                onClick: preview,
+              },
+              React.createElement("svg-icon", { hash: "visibility" })
+            ),
           React.createElement(
-            "button",
+            "a",
             {
               className: "icon-link download-attachment",
               title: browser.i18n.getMessage("attachments.download.tooltip"),
               onClick: downloadAttachment,
-              type: "button",
             },
-            React.createElement(SvgIcon, { hash: "file_download" })
+            React.createElement("svg-icon", { hash: "file_download" })
+          ),
+          React.createElement(
+            "a",
+            {
+              className: "icon-link open-attachment",
+              title: browser.i18n.getMessage("attachments.open.tooltip"),
+              onClick: openAttachment,
+            },
+            React.createElement("svg-icon", { hash: "search" })
+          ),
+          React.createElement(
+            "span",
+            { className: "attachmentsDropDown" },
+            React.createElement(
+              "a",
+              {
+                className: "icon-link more-attachment",
+                title: browser.i18n.getMessage("attachments.moreMenu.tooltip"),
+                onClick: handleDisplayMenu,
+              },
+              React.createElement("svg-icon", { hash: "more_vert" })
+            ),
+            displayMenu &&
+              React.createElement(AttachmentMoreMenu, {
+                detachCallback: detachAttachment,
+                deleteCallback: deleteAttachment,
+              })
           )
         )
     )
@@ -188,37 +342,48 @@ function Attachment({
  * @param {number} options.id
  */
 export function Attachments({ dispatch, attachments, attachmentsPlural, id }) {
-  function downloadAllAttachments(event) {
-    event.preventDefault();
-    event.stopPropagation();
+  function showGalleryView() {
+    dispatch(attachmentActions.showGalleryView({ id }));
+  }
+
+  function downloadAll() {
     dispatch(
       attachmentActions.downloadAll({
         id,
+        partNames: attachments.map((a) => a.partName),
       })
     );
   }
 
+  const showGalleryLink = attachments.some((a) =>
+    a.contentType.startsWith("image/")
+  );
   return React.createElement(
     "ul",
     { className: "attachments" },
-    attachments.length > 0 && React.createElement(
+    React.createElement(
       "div",
       { className: "attachHeader" },
+      attachmentsPlural,
       React.createElement(
-        "span",
-        { className: "attachHeaderText" },
-        attachmentsPlural
-      ),
-      attachments.length > 1 && React.createElement(
-        "button",
+        "a",
         {
-          className: "icon-link save-all-attachments",
+          className: "icon-link download-all",
+          onClick: downloadAll,
           title: browser.i18n.getMessage("attachments.downloadAll.tooltip"),
-          onClick: downloadAllAttachments,
-          type: "button",
         },
-        React.createElement(SvgIcon, { hash: "file_download" })
-      )
+        React.createElement("svg-icon", { hash: "file_download" })
+      ),
+      showGalleryLink &&
+        React.createElement(
+          "a",
+          {
+            onClick: showGalleryView,
+            className: "icon-link view-all",
+            title: browser.i18n.getMessage("attachments.gallery.tooltip"),
+          },
+          React.createElement("svg-icon", { hash: "photo_library" })
+        )
     ),
     attachments.map((attachment) =>
       React.createElement(Attachment, {

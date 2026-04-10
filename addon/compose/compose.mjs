@@ -13,7 +13,7 @@ export const store = RTK.configureStore({ reducer: composeApp });
 /**
  * @typedef {ReturnType<store["getState"]>} RootState
  * @typedef {store["dispatch"]} AppDispatch
- * */
+ */
 
 /** @type {ReturnType<typeof ReactRedux.useSelector.withTypes<RootState>>} */
 const useAppSelector = ReactRedux.useSelector;

@@ -393,6 +393,7 @@ export class Message extends React.PureComponent {
           React.createElement(MessageIFrame, {
             browserBackgroundColor: this.props.browserBackgroundColor,
             browserForegroundColor: this.props.browserForegroundColor,
+            darkReaderEnabled: this.props.darkReaderEnabled,
             defaultFontSize: this.props.defaultFontSize,
             dispatch: this.props.dispatch,
             expanded: this.props.message.expanded,
@@ -427,6 +428,7 @@ Message.propTypes = {
   autoMarkAsRead: PropTypes.bool.isRequired,
   browserBackgroundColor: PropTypes.string.isRequired,
   browserForegroundColor: PropTypes.string.isRequired,
+  darkReaderEnabled: PropTypes.bool.isRequired,
   defaultFontSize: PropTypes.number.isRequired,
   dispatch: PropTypes.func.isRequired,
   displayingMultipleMsgs: PropTypes.bool.isRequired,

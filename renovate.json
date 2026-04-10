@@ -5,17 +5,24 @@
       "matchDepTypes": ["devDependencies"],
       "matchUpdateTypes": ["patch", "minor"],
       "groupName": "devDependencies (non-major)",
-      "groupSlug": "dev-dependencies"
-    },
-    {
-      "matchPackageNames": ["eslint"],
-      "enabled": "false"
+      "groupSlug": "dev-dependencies",
+      "minimumReleaseAge": "3 days",
+      "internalChecksFilter": "strict"
     },
     {
       "matchDepTypes": ["dependencies"],
       "matchUpdateTypes": ["patch", "minor"],
       "groupName": "dependencies (non-major)",
-      "groupSlug": "dependencies"
+      "groupSlug": "dependencies",
+      "minimumReleaseAge": "3 days",
+      "internalChecksFilter": "strict"
+    },
+    {
+      "matchPackageNames": ["global-jsdom", "jsdom"],
+      "groupName": "dependencies (non-major)",
+      "groupSlug": "jsdom",
+      "minimumReleaseAge": "3 days",
+      "internalChecksFilter": "strict"
     }
   ]
 }
