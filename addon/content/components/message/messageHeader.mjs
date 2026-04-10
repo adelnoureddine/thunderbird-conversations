@@ -4,6 +4,7 @@
 
 import React from "react";
 import ReactDOM from "react-dom";
+import { ContactDetail } from "../contactDetail.mjs";
 import { messageActions } from "../../reducer/reducerMessages.mjs";
 import { MessageHeaderOptions } from "./messageHeaderOptions.mjs";
 import { MessageTags, SpecialMessageTags } from "./messageTags.mjs";
@@ -145,7 +146,7 @@ export function DetailedContactLabel({ contact, className, msgId }) {
   return React.createElement(
     HoverFade,
     {
-      popup: React.createElement("contact-detail", {
+      popup: React.createElement(ContactDetail, {
         name: contact.name,
         email: contact.displayEmail,
         msgId,
@@ -192,7 +193,7 @@ export function ContactLabel({ contact, className, msgId }) {
   return React.createElement(
     HoverFade,
     {
-      popup: React.createElement("contact-detail", {
+      popup: React.createElement(ContactDetail, {
         name: contact.name,
         email: contact.displayEmail,
         msgId,
@@ -216,18 +217,29 @@ export function ContactLabel({ contact, className, msgId }) {
 }
 
 /**
- * Renders and Avatar icon.
+ * Renders and Avatar icon - uses gentle tints of contact colors.
  *
  * @param {object} props
  * @param {string} [props.url]
  * @param {string} [props.initials]
- * @param {object} [props.style]
+ * @param {object} [props.style] - Contact color style, will be made more gentle
  */
 function Avatar({ url, initials, style }) {
+  // Create a gentle version of the contact color
+  let gentleStyle = {};
+  if (style && style.backgroundColor) {
+    const originalColor = style.backgroundColor;
+    gentleStyle = {
+      backgroundColor: originalColor,
+      opacity: 0.5,
+      backgroundBlendMode: "multiply",
+    };
+  }
+
   if (!url) {
     return React.createElement(
       "abbr",
-      { className: "contactInitials", style },
+      { className: "contactInitials", style: gentleStyle },
       initials
     );
   }
@@ -263,13 +275,16 @@ function Avatar({ url, initials, style }) {
  * @param {string} props.snippet
  * @param {boolean} props.starred
  * @param {object[]} props.tags
+ * @param {object[]} props.specialTags
  * @param {object[]} props.to
+ * @param {boolean} [props.overrideDarkMode]
  */
 export function MessageHeader({
   starred,
   expanded,
   from,
   id,
+  overrideDarkMode,
   dispatch,
   bcc,
   cc,
@@ -284,6 +299,7 @@ export function MessageHeader({
   shortFolderName,
   snippet,
   tags,
+  specialTags,
   to,
 }) {
   function onClickHeader() {
@@ -297,7 +313,6 @@ export function MessageHeader({
 
   function onClickStar(event) {
     event.stopPropagation();
-    event.preventDefault();
     dispatch(
       messageActions.setStarred({
         id,
@@ -320,7 +335,11 @@ export function MessageHeader({
     extraContacts = React.createElement(
       React.Fragment,
       null,
-      browser.i18n.getMessage("header.to") + " ",
+      React.createElement(
+        "span",
+        { className: "to-label" },
+        browser.i18n.getMessage("header.to") + " "
+      ),
       new Intl.ListFormat(locale, { style: "long", type: "conjunction" })
         .formatToParts(allToMap.keys())
         .map((item, i) => {
@@ -338,57 +357,71 @@ export function MessageHeader({
             key: item.value,
             msgId: id,
           });
-        }),
-      " "
+        })
     );
   }
   if (!expanded) {
     extraContacts = React.createElement(React.Fragment);
   }
 
-  let starTitle = browser.i18n.getMessage(
-    starred ? "message.removeStar.tooltip" : "message.addStar.tooltip"
-  );
+  // Helper: the star button using native Thunderbird icon
+  function starButton() {
+    return React.createElement(
+      "button",
+      {
+        className: starred ? "button-star flagged" : "button-star",
+        "aria-label": starred
+          ? browser.i18n.getMessage("message.removeStar.tooltip") ||
+            "Remove Star"
+          : browser.i18n.getMessage("message.addStar.tooltip") || "Add Star",
+        title: starred
+          ? browser.i18n.getMessage("message.removeStar.tooltip") ||
+            "Remove Star"
+          : browser.i18n.getMessage("message.addStar.tooltip") || "Add Star",
+        onClick: onClickStar,
+        tabIndex: 0,
+      },
+      React.createElement("img", {
+        src: starred
+          ? "chrome://messenger/skin/icons/new/compact/star-filled.svg"
+          : "chrome://messenger/skin/icons/new/compact/star.svg",
+        alt: starred ? "★" : "☆",
+      })
+    );
+  }
 
-  return React.createElement(
-    "div",
-    {
-      className: `messageHeader hbox ${expanded ? "expanded" : ""}`,
-      onClick: onClickHeader,
-    },
-    React.createElement(
+  // For collapsed messages, use two-row layout like Thunderbird's native inbox
+  if (!expanded) {
+    return React.createElement(
       "div",
-      { className: "shrink-box" },
+      {
+        className: "messageHeader collapsed-two-row",
+        onClick: onClickHeader,
+      },
+      // Row 1: Author info, tags, and date/options
       React.createElement(
-        "button",
-        {
-          className: `star ${starred ? "starred" : ""}`,
-          title: starTitle,
-          onClick: onClickStar,
-        },
-        React.createElement("svg-icon", { "aria-hidden": true, hash: "star" })
-      ),
-      !!from &&
+        "div",
+        { className: "header-row-1" },
         React.createElement(
-          React.Fragment,
-          null,
-          React.createElement(Avatar, {
-            url: from.avatar,
-            style: from.colorStyle,
-            initials: from.initials,
-          }),
-          " ",
-          React.createElement(ContactLabel, {
-            className: "author",
-            contact: from,
-            msgId: id,
-          })
-        ),
-      extraContacts,
-      !expanded &&
-        React.createElement(
-          "span",
-          { className: "snippet" },
+          "div",
+          { className: "author-info" },
+          starButton(),
+          !!from &&
+            React.createElement(
+              React.Fragment,
+              null,
+              React.createElement(Avatar, {
+                url: from.avatar,
+                style: from.colorStyle,
+                initials: from.initials,
+              }),
+              " ",
+              React.createElement(ContactLabel, {
+                className: "author",
+                contact: from,
+                msgId: id,
+              })
+            ),
           React.createElement(MessageTags, {
             onTagsChange: (newTags) => {
               dispatch(
@@ -413,21 +446,106 @@ export function MessageHeader({
             },
             folderName: shortFolderName,
             inView,
-          }),
-          snippet
-        )
+            specialTags,
+          })
+        ),
+        React.createElement(MessageHeaderOptions, {
+          dispatch,
+          overrideDarkMode,
+          date,
+          detailsShowing,
+          expanded,
+          fullDate,
+          id,
+          attachments,
+          multipleRecipients,
+          recipientsIncludeLists,
+          isDraft,
+        })
+      ),
+      // Row 2: Subject/snippet only
+      React.createElement(
+        "div",
+        { className: "header-row-2" },
+        React.createElement("span", { className: "snippet" }, snippet)
+      )
+    );
+  }
+
+  // For expanded messages, use a layout similar to collapsed but with more space
+  return React.createElement(
+    "div",
+    {
+      className: `messageHeader expanded-two-row ${expanded ? "expanded" : ""}`,
+      onClick: onClickHeader,
+    },
+    // Row 1: Author info, tags, and date/options
+    React.createElement(
+      "div",
+      { className: "header-row-1" },
+      React.createElement(
+        "div",
+        { className: "author-info-expanded" },
+        starButton(),
+        !!from &&
+          React.createElement(
+            React.Fragment,
+            null,
+            React.createElement(Avatar, {
+              url: from.avatar,
+              style: from.colorStyle,
+              initials: from.initials,
+            }),
+            " ",
+            React.createElement(ContactLabel, {
+              className: "author",
+              contact: from,
+              msgId: id,
+            })
+          ),
+        React.createElement(MessageTags, {
+          onTagsChange: (newTags) => {
+            dispatch(
+              messageActions.setTags({
+                id,
+                tags: newTags,
+              })
+            );
+          },
+          expanded: false,
+          tags,
+        }),
+        React.createElement(SpecialMessageTags, {
+          onTagClick: (event, tag) => {
+            dispatch(
+              messageActions.tagClick({
+                event,
+                id,
+                details: tag.details,
+              })
+            );
+          },
+          folderName: shortFolderName,
+          inView,
+          specialTags,
+        })
+      ),
+      React.createElement(MessageHeaderOptions, {
+        dispatch,
+        overrideDarkMode,
+        date,
+        detailsShowing,
+        expanded,
+        fullDate,
+        id,
+        attachments,
+        multipleRecipients,
+        recipientsIncludeLists,
+        isDraft,
+      })
     ),
-    React.createElement(MessageHeaderOptions, {
-      dispatch,
-      date,
-      detailsShowing,
-      expanded,
-      fullDate,
-      id,
-      attachments,
-      multipleRecipients,
-      recipientsIncludeLists,
-      isDraft,
-    })
+    // Row 2: Recipients info
+    extraContacts &&
+      React.createElement("div", { className: "header-row-2" }, extraContacts)
   );
 }
